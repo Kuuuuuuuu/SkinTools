@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 )
@@ -26,6 +28,19 @@ const (
 	name       = "IDK"
 )
 
+func generateName(length int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := make([]byte, length)
+	for i := range result {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		if err != nil {
+			panic(err)
+		}
+		result[i] = chars[num.Int64()]
+	}
+	return string(result)
+}
+
 func main() {
 	files, err := os.ReadDir(skinPath)
 	if err != nil {
@@ -38,8 +53,8 @@ func main() {
 
 	for _, file := range files {
 		if !file.IsDir() && filepath.Ext(file.Name()) == ".png" {
-			newName := fmt.Sprintf("%d.png", count)
 			oldPath := filepath.Join(skinPath, file.Name())
+			newName := generateName(16) + ".png"
 			newPath := filepath.Join(skinPath, newName)
 
 			err := os.Rename(oldPath, newPath)
