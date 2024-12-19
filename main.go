@@ -9,6 +9,15 @@ import (
 	"path/filepath"
 )
 
+type Config struct {
+	SkinPath   string `json:"skinPath"`
+	OutputFile string `json:"outputFile"`
+	Name       string `json:"name"`
+	Geometry   string `json:"geometry"`
+	SkinType   string `json:"skinType"`
+	NameLength int    `json:"nameLength"`
+}
+
 type Skin struct {
 	LocalizationName string `json:"localization_name"`
 	Geometry         string `json:"geometry"`
@@ -22,11 +31,21 @@ type OutputJSON struct {
 	LocalizationName string `json:"localization_name"`
 }
 
-const (
-	skinPath   = "./images"
-	outputFile = "skins.json"
-	name       = "IDK"
-)
+func loadConfig(configFile string) (*Config, error) {
+	file, err := os.Open(configFile)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var config Config
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
 
 func generateName(length int) string {
 	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -42,7 +61,13 @@ func generateName(length int) string {
 }
 
 func main() {
-	files, err := os.ReadDir(skinPath)
+	config, err := loadConfig("config.json")
+	if err != nil {
+		fmt.Println("Error loading config:", err)
+		return
+	}
+
+	files, err := os.ReadDir(config.SkinPath)
 	if err != nil {
 		fmt.Println("Error reading directory:", err)
 		return
@@ -53,9 +78,9 @@ func main() {
 
 	for _, file := range files {
 		if !file.IsDir() && filepath.Ext(file.Name()) == ".png" {
-			oldPath := filepath.Join(skinPath, file.Name())
-			newName := generateName(16) + ".png"
-			newPath := filepath.Join(skinPath, newName)
+			oldPath := filepath.Join(config.SkinPath, file.Name())
+			newName := generateName(config.NameLength) + ".png"
+			newPath := filepath.Join(config.SkinPath, newName)
 
 			err := os.Rename(oldPath, newPath)
 			if err != nil {
@@ -65,9 +90,9 @@ func main() {
 
 			skin := Skin{
 				LocalizationName: fmt.Sprintf("Skin %d", count),
-				Geometry:         "geometry.humanoid.customSlim", // change this if u want
+				Geometry:         config.Geometry,
 				Texture:          newName,
-				Type:             "free",
+				Type:             config.SkinType,
 			}
 
 			skins = append(skins, skin)
@@ -77,8 +102,8 @@ func main() {
 
 	output := OutputJSON{
 		Skins:            skins,
-		SerializeName:    name,
-		LocalizationName: name,
+		SerializeName:    config.Name,
+		LocalizationName: config.Name,
 	}
 
 	jsonData, err := json.MarshalIndent(output, "", "  ")
@@ -87,7 +112,7 @@ func main() {
 		return
 	}
 
-	err = os.WriteFile(outputFile, jsonData, 0644)
+	err = os.WriteFile(config.OutputFile, jsonData, 0644)
 	if err != nil {
 		fmt.Println("Error writing JSON file:", err)
 		return

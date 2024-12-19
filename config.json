@@ -1,0 +1,8 @@
+{
+  "skinPath": "./images",
+  "outputFile": "skins.json",
+  "name": "IDK",
+  "geometry": "geometry.humanoid.customSlim",
+  "skinType": "free",
+  "nameLength": 16
+}
